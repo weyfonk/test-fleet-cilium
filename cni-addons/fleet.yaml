@@ -25,5 +25,3 @@ helm:
           hosts:
             - hubble.xcr.${ .ClusterLabels.cluster_build_name }.${ .ClusterLabels.environment }.${ .ClusterLabels.region }.kaas.sws.siemens.com
 
-dependsOn:
-  - name: cilium-cilium
