@@ -1,0 +1,67 @@
+{{- if .Values.applyConfigToExistingPods.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: restart-script
+data:
+  restart-script.sh: |
+    #!/bin/bash
+
+    function are_all_cilium_pods_running {
+      local cilium_pods_running=$(kubectl get pods -n kube-system -l 'k8s-app=cilium' --no-headers | awk '{print $3}' | grep -c 'Running')
+      local total_cilium_pods=$(kubectl get pods -n kube-system -l 'k8s-app=cilium' --no-headers | wc -l)
+      [[ $cilium_pods_running -eq $total_cilium_pods ]]
+    }
+
+    while true; do
+    if are_all_cilium_pods_running; then
+    for ns in $(kubectl get ns -o jsonpath='{.items[*].metadata.name}'); do
+         ceps=$(kubectl -n "${ns}" get cep \
+             -o json | jq -r '.items[] | select(.metadata.labels["exclude-me"] != "true") | .metadata.name' | tr '\n' ' ') 
+         pods=$(kubectl -n "${ns}" get pod -l "exclude-me!=true" \
+             -o custom-columns=NAME:.metadata.name,NETWORK:.spec.hostNetwork \
+             | grep -E '\s(<none>|false)' | awk '{print $1}' | tr '\n' ' ')
+         ncep=$(echo "${pods} ${ceps}" | tr ' ' '\n' | sort | uniq -u | paste -s -d ' ' -)
+         if [[ -n "$ncep" ]]; then
+           for pod in $(echo $ncep); do
+             echo "${ns}/${pod}";
+             kubectl delete pod ${pod} --force -n ${ns};
+           done
+         else 
+          echo "All Pods in namespace ${ns} are managed by Cilium"
+         fi 
+    done
+
+    break
+    else
+      sleep 10
+    fi
+    done
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pod-restart-job
+spec:
+  template:
+    metadata:
+      labels:
+        exclude-me: "true"
+    spec:
+      serviceAccountName: cilium-operator
+      restartPolicy: Never
+      containers:
+      - name: restart
+        image: bitnami/kubectl
+        command: ["/bin/bash", "-c", "./scripts/restart-script.sh"]
+        volumeMounts:
+        - name: script-volume
+          mountPath: /scripts
+          readOnly: true
+      volumes:
+      - name: script-volume
+        configMap:
+          name: restart-script
+          defaultMode: 0755
+  backoffLimit: 1
+{{- end }}

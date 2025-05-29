@@ -1,0 +1,42 @@
+{{- if .Values.hubble.ingress.enabled -}}
+{{- $fullName := .Values.hubble.ingress.name  -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hubble-ingress
+  labels:
+    {{- with .Values.hubble.ingress.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.hubble.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.hubble.ingress.className }}
+  {{- if .Values.hubble.ingress.tls }}
+  tls:
+    {{- range .Values.hubble.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.hubble.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: hubble-ui
+                port:
+                  number: 80
+          {{- end }}
+    {{- end }}
+{{- end }}

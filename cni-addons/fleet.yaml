@@ -1,0 +1,29 @@
+defaultNamespace: kube-system
+
+helm:
+  valuesFiles:
+    - values.yaml
+
+  values:
+    hubble:
+      ingress:
+        enabled: false
+        className: "nginx"
+        annotations:
+          # Below annotations enable authentication via Keycloak - !! Once removed ingress will be accessible without Auth !!
+          nginx.ingress.kubernetes.io/auth-signin: https://hubble.xcr.${ .ClusterLabels.cluster_build_name }.${ .ClusterLabels.environment }.${ .ClusterLabels.region }.kaas.sws.siemens.com/oauth2/start?rd=$escaped_request_uri
+          nginx.ingress.kubernetes.io/auth-url: https://hubble.xcr.${ .ClusterLabels.cluster_build_name }.${ .ClusterLabels.environment }.${ .ClusterLabels.region }.kaas.sws.siemens.com/oauth2/auth
+          nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+          nginx.ingress.kubernetes.io/proxy-buffer-size: 16k
+        hosts:
+          - host: hubble.xcr.${ .ClusterLabels.cluster_build_name }.${ .ClusterLabels.environment }.${ .ClusterLabels.region }.kaas.sws.siemens.com
+            paths:
+              - path: /
+                pathType: ImplementationSpecific
+        tls: 
+        - secretName: hubbleui-tls-cert
+          hosts:
+            - hubble.xcr.${ .ClusterLabels.cluster_build_name }.${ .ClusterLabels.environment }.${ .ClusterLabels.region }.kaas.sws.siemens.com
+
+dependsOn:
+  - name: cilium-cilium
