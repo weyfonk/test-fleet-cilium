@@ -2,7 +2,7 @@ defaultNamespace: kube-system
 
 helm:
   valuesFiles:
-    - values.yaml
+    - cni-addons/values.yaml
 
   values:
     hubble:
