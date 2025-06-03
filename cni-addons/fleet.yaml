@@ -2,4 +2,4 @@ defaultNamespace: kube-system
 
 helm:
   valuesFiles:
-    - cni-addons/values.yaml
+    - values.yaml
