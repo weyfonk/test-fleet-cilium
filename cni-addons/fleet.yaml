@@ -7,5 +7,5 @@ helm:
   values:
     hubble:
       ingress:
-        enabled: false
+        enabled: true
         className: "nginx"
