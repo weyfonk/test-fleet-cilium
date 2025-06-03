@@ -37,31 +37,4 @@ data:
       sleep 10
     fi
     done
----
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: pod-restart-job
-spec:
-  template:
-    metadata:
-      labels:
-        exclude-me: "true"
-    spec:
-      serviceAccountName: cilium-operator
-      restartPolicy: Never
-      containers:
-      - name: restart
-        image: bitnami/kubectl
-        command: ["/bin/bash", "-c", "./scripts/restart-script.sh"]
-        volumeMounts:
-        - name: script-volume
-          mountPath: /scripts
-          readOnly: true
-      volumes:
-      - name: script-volume
-        configMap:
-          name: restart-script
-          defaultMode: 0755
-  backoffLimit: 1
 {{- end }}
